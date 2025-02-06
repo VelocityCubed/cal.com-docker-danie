@@ -27,12 +27,13 @@ COPY calcom/apps/web ./apps/web
 COPY calcom/apps/api/v2 ./apps/api/v2
 COPY calcom/packages ./packages
 COPY calcom/tests ./tests
+COPY calcom/.env ./.env
 
 RUN yarn config set httpTimeout 1200000
 RUN npx turbo prune --scope=@calcom/web --docker
 RUN yarn install
-RUN yarn db-deploy
-RUN yarn --cwd packages/prisma seed-app-store
+#RUN yarn db-deploy
+#RUN yarn --cwd packages/prisma seed-app-store
 # Build and make embed servable from web/public/embed folder
 RUN yarn --cwd packages/embeds/embed-core workspace @calcom/embed-core run build
 RUN yarn --cwd apps/web workspace @calcom/web run build
@@ -50,6 +51,7 @@ ENV NODE_ENV production
 
 COPY calcom/package.json calcom/.yarnrc.yml calcom/turbo.json calcom/i18n.json ./
 COPY calcom/.yarn ./.yarn
+COPY calcom/.env ./.env
 COPY --from=builder /calcom/yarn.lock ./yarn.lock
 COPY --from=builder /calcom/node_modules ./node_modules
 COPY --from=builder /calcom/packages ./packages
