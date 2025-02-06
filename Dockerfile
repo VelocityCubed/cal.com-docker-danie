@@ -27,7 +27,6 @@ COPY calcom/apps/web ./apps/web
 COPY calcom/apps/api/v2 ./apps/api/v2
 COPY calcom/packages ./packages
 COPY calcom/tests ./tests
-COPY calcom/.env ./.env
 
 RUN yarn config set httpTimeout 1200000
 RUN npx turbo prune --scope=@calcom/web --docker
@@ -51,7 +50,6 @@ ENV NODE_ENV production
 
 COPY calcom/package.json calcom/.yarnrc.yml calcom/turbo.json calcom/i18n.json ./
 COPY calcom/.yarn ./.yarn
-COPY calcom/.env ./.env
 COPY --from=builder /calcom/yarn.lock ./yarn.lock
 COPY --from=builder /calcom/node_modules ./node_modules
 COPY --from=builder /calcom/packages ./packages
