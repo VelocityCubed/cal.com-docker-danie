@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  CONTAINER_PORT: 3000
+
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -39,6 +43,51 @@ jobs:
       - name: Build and push Docker image
         run: |
           docker buildx build --platform linux/amd64 \
-            -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
-            -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.IMAGE_NAME }}:latest \
+            -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.IMAGE_NAME }}${GITHUB_REPOSITORY##*/}:${{ env.IMAGE_TAG }} \
+            -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.IMAGE_NAME }}${GITHUB_REPOSITORY##*/}:latest \
             --push .
+
+
+      - name: Deploy to Azure Container Instance
+        run: |
+          az container create \
+            --resource-group ${{ secrets.ACI_RESOURCE_GROUP }} \
+            --name ${{ secrets.ACR_NAME }}${GITHUB_REPOSITORY##*/} \
+            --image ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+            --registry-login-server ${{ secrets.ACR_NAME }}.azurecr.io \
+            --cpu 2 \
+            --memory 4 \
+            --ports $CONTAINER_PORT \
+            --restart-policy Always \
+            --environment-variables \
+              NEXT_PUBLIC_DEBUG=1 \
+              NODE_OPTIONS="--max_old_space_size=8192" \
+              CALCOM_PRIVATE_API_ROUTE="https://goblin.cal.com" \
+              DATABASE_URL="postgresql://fmadmin:fertilityMapperDataBaseAdminPassword%40123@fm-postgres-we.postgres.database.azure.com:5432/calendso3?user=fmadmin&password=fertilityMapperDataBaseAdminPassword%40123&sslmode=require" \
+              DATABASE_DIRECT_URL="postgresql://fmadmin:fertilityMapperDataBaseAdminPassword%40123@fm-postgres-we.postgres.database.azure.com:5432/calendso3?user=fmadmin&password=fertilityMapperDataBaseAdminPassword%40123&sslmode=require" \
+              NEXT_PUBLIC_WEBAPP_URL="http://localhost:3000" \
+              NEXT_PUBLIC_WEBSITE_URL="http://localhost:3000" \
+              NEXT_PUBLIC_CONSOLE_URL="http://localhost:3004" \
+              NEXT_PUBLIC_EMBED_LIB_URL="http://localhost:3000/embed/embed.js" \
+              ALLOWED_HOSTNAMES='"cal.com","cal.dev","cal-staging.com","cal.community","cal.local:3000","localhost:3000"' \
+              RESERVED_SUBDOMAINS='"app","auth","docs","design","console","go","status","api","saml","www","matrix","developer","cal","my","team","support","security","blog","learn","admin"' \
+              NEXTAUTH_URL="http://localhost:3000" \
+              NEXTAUTH_SECRET="/6tODEuZUbbxOecTA0xzmJGmhRa7JwKqQO5FWZsHUKc=" \
+              CRON_API_KEY="0cc0e6c35519bba620c9360cfe3e68d0" \
+              CALENDSO_ENCRYPTION_KEY="goaxzdDeTNf3AaGaalX3thrC/XFInn+m" \
+              PLAIN_API_URL="https://api.plain.com/v1" \
+              EMAIL_FROM="notifications@yourselfhostedcal.com" \
+              EMAIL_FROM_NAME="Cal.com" \
+              EMAIL_SERVER_HOST="localhost" \
+              EMAIL_SERVER_PORT=1025 \
+              NEXT_PUBLIC_FORMBRICKS_HOST_URL="https://app.formbricks.com" \
+              NEXT_PUBLIC_APP_NAME="Cal.com" \
+              NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS="help@cal.com" \
+              NEXT_PUBLIC_COMPANY_NAME="Cal.com, Inc." \
+              NEXT_PUBLIC_ORGANIZATIONS_MIN_SELF_SERVE_SEATS=30 \
+              NEXT_PUBLIC_ORGANIZATIONS_SELF_SERVE_PRICE=3700 \
+              AB_TEST_BUCKET_PROBABILITY=50
+
+      - name: Verify deployment
+        run: |
+          az container show --resource-group ${{ secrets.ACI_RESOURCE_GROUP }} --name $ACI_NAME --query "{FQDN:ipAddress.fqdn, State:instanceView.state}" --output table
