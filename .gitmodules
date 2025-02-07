@@ -2,3 +2,11 @@
 	path = calcom
 	url = https://github.com/VelocityCubed/cal.com.git
 	branch = main
+
+[submodule "velocity-overrides"]
+	path = calcom-override
+	url = https://github.com/VelocityCubed/cal.com-override.git
+	branch = main
+[submodule "calcom-override"]
+	path = calcom-override
+	url = https://github.com/VelocityCubed/cal.com-override.git
