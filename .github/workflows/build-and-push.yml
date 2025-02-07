@@ -55,6 +55,8 @@ jobs:
             --name ${{ secrets.ACR_NAME }}${GITHUB_REPOSITORY##*/} \
             --image ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
             --registry-login-server ${{ secrets.ACR_NAME }}.azurecr.io \
+            --registry-username ${{ secrets.ACR_USERNAME }} \
+            --registry-password ${{ secrets.ACR_PASSWORD }} \
             --cpu 2 \
             --memory 4 \
             --ports $CONTAINER_PORT \
