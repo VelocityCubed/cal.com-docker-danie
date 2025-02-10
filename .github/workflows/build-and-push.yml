@@ -89,8 +89,12 @@ jobs:
           az network front-door backend-pool create \
             --resource-group "$RESOURCE_GROUP" \
             --front-door-name "$FRONTDOOR_NAME" \
-            --name "$BACKEND_POOL"
+            --name "$BACKEND_POOL" \ 
+            --load-balancing "defaultLoadBalancingSettings" \
+            --probe "defaultProbeSettings"
+            --address "$ACI_BACKEND"
 
+          echo "Adding backend to the pool"
           # Now add the container as a backend with required load balancing and probe settings.
           # Replace 'defaultLoadBalancingSettings' and 'defaultProbeSettings' with the actual names on your Front Door if they differ.
           az network front-door backend-pool backend add \
@@ -104,6 +108,8 @@ jobs:
             --probe "defaultProbeSettings" \
             --priority 1 \
             --weight 50
+
+          echo "update routes"  
 
           # (Optional) Update an existing routing rule to point to this backend pool.
           az network front-door routing-rule update \
