@@ -77,21 +77,20 @@ jobs:
           # Variables
           RESOURCE_GROUP="${{ secrets.ACI_RESOURCE_GROUP }}"
           FRONTDOOR_NAME="fertilitymapper"
-          # Specify the backend pool name in your Front Door that should host the container backend.
           BACKEND_POOL="container-backend"
-          # Construct the container's public DNS name (adjust if your region or domain is different)
+          # Construct the container's public DNS name (adjust if your region/domain is different)
           ACI_BACKEND="${SANITIZED_NAME}.westeurope.azurecontainer.io"
           
           echo "Adding container backend '$ACI_BACKEND' to Front Door '$FRONTDOOR_NAME' (pool: '$BACKEND_POOL')"
 
-          # If the backend pool doesn't exist yet, you can create it:
+          # If the backend pool doesn't exist yet, create it.
           az network front-door backend-pool create \
             --resource-group "$RESOURCE_GROUP" \
             --front-door-name "$FRONTDOOR_NAME" \
             --name "$BACKEND_POOL"
 
-          # Now add the container as a backend.
-          # Here, adjust the ports as necessary. We assume HTTP on the container port (or use 80 if it listens on that port).
+          # Now add the container as a backend with required load balancing and probe settings.
+          # Replace 'defaultLoadBalancingSettings' and 'defaultProbeSettings' with the actual names on your Front Door if they differ.
           az network front-door backend-pool backend add \
             --resource-group "$RESOURCE_GROUP" \
             --front-door-name "$FRONTDOOR_NAME" \
@@ -99,18 +98,20 @@ jobs:
             --address "$ACI_BACKEND" \
             --http-port $CONTAINER_PORT \
             --https-port 443 \
+            --load-balancing "defaultLoadBalancingSettings" \
+            --probe "defaultProbeSettings" \
             --priority 1 \
             --weight 50
 
-          # (Optional) If you need to update an existing routing rule to include this backend pool, you can do so.
-          # For example, to update a routing rule named 'routingRule' to forward traffic to your pool:
+          # (Optional) Update an existing routing rule to point to this backend pool.
           az network front-door routing-rule update \
             --resource-group "$RESOURCE_GROUP" \
             --front-door-name "$FRONTDOOR_NAME" \
             --name "routingRule" \
             --forwarding-configuration backend-pool="$BACKEND_POOL"
           
-          echo "Front Door '$FRONTDOOR_NAME' updated with new container backend."
+          echo "Front Door '$FRONTDOOR_NAME' updated with the new container backend."
+
 
 
       - name: Build and push Docker image
