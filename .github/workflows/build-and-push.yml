@@ -66,10 +66,52 @@ jobs:
           # Sanitize the repository name
           SANITIZED_NAME=$(sanitize_name "$REPO_NAME")
           echo "$SANITIZED_NAME"
-          
+
           echo "${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.IMAGE_NAME }}${GITHUB_REPOSITORY##*/}:${{ env.IMAGE_TAG }}"
 
           docker login ${{ secrets.ACR_NAME }}.azurecr.io -u ${{ secrets.ACR_USERNAME }} -p ${{ secrets.ACR_PASSWORD }}
+
+
+      - name: Add container backend to Front Door
+        run: |
+          # Variables
+          RESOURCE_GROUP="${{ secrets.ACI_RESOURCE_GROUP }}"
+          FRONTDOOR_NAME="fertilitymapper"
+          # Specify the backend pool name in your Front Door that should host the container backend.
+          BACKEND_POOL="container-backend"
+          # Construct the container's public DNS name (adjust if your region or domain is different)
+          ACI_BACKEND="${SANITIZED_NAME}.westeurope.azurecontainer.io"
+          
+          echo "Adding container backend '$ACI_BACKEND' to Front Door '$FRONTDOOR_NAME' (pool: '$BACKEND_POOL')"
+
+          # If the backend pool doesn't exist yet, you can create it:
+          az network front-door backend-pool create \
+            --resource-group "$RESOURCE_GROUP" \
+            --front-door-name "$FRONTDOOR_NAME" \
+            --name "$BACKEND_POOL"
+
+          # Now add the container as a backend.
+          # Here, adjust the ports as necessary. We assume HTTP on the container port (or use 80 if it listens on that port).
+          az network front-door backend-pool backend add \
+            --resource-group "$RESOURCE_GROUP" \
+            --front-door-name "$FRONTDOOR_NAME" \
+            --pool-name "$BACKEND_POOL" \
+            --address "$ACI_BACKEND" \
+            --http-port $CONTAINER_PORT \
+            --https-port 443 \
+            --priority 1 \
+            --weight 50
+
+          # (Optional) If you need to update an existing routing rule to include this backend pool, you can do so.
+          # For example, to update a routing rule named 'routingRule' to forward traffic to your pool:
+          az network front-door routing-rule update \
+            --resource-group "$RESOURCE_GROUP" \
+            --front-door-name "$FRONTDOOR_NAME" \
+            --name "routingRule" \
+            --forwarding-configuration backend-pool="$BACKEND_POOL"
+          
+          echo "Front Door '$FRONTDOOR_NAME' updated with new container backend."
+
 
       - name: Build and push Docker image
         run: |
@@ -125,8 +167,8 @@ jobs:
               NEXT_PUBLIC_DEBUG=1 \
               NODE_OPTIONS="--max_old_space_size=8192" \
               CALCOM_PRIVATE_API_ROUTE="https://goblin.cal.com" \
-              DATABASE_URL="postgresql://fmadmin:fertilityMapperDataBaseAdminPassword%40123@fm-postgres-we.postgres.database.azure.com:5432/calendso3?user=fmadmin&password=fertilityMapperDataBaseAdminPassword%40123&sslmode=require" \
-              DATABASE_DIRECT_URL="postgresql://fmadmin:fertilityMapperDataBaseAdminPassword%40123@fm-postgres-we.postgres.database.azure.com:5432/calendso3?user=fmadmin&password=fertilityMapperDataBaseAdminPassword%40123&sslmode=require" \
+              DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              DATABASE_DIRECT_URL="${{ secrets.DATABASE_URL }}" \
               NEXT_PUBLIC_WEBAPP_URL="http://localhost:3000" \
               NEXT_PUBLIC_WEBSITE_URL="http://localhost:3000" \
               NEXT_PUBLIC_CONSOLE_URL="http://localhost:3004" \
@@ -149,7 +191,3 @@ jobs:
               NEXT_PUBLIC_ORGANIZATIONS_MIN_SELF_SERVE_SEATS=30 \
               NEXT_PUBLIC_ORGANIZATIONS_SELF_SERVE_PRICE=3700 \
               AB_TEST_BUCKET_PROBABILITY=50
-
-      - name: Verify deployment
-        run: |
-          az container show --resource-group ${{ secrets.ACI_RESOURCE_GROUP }} --name $ACI_NAME --query "{FQDN:ipAddress.fqdn, State:instanceView.state}" --output table
