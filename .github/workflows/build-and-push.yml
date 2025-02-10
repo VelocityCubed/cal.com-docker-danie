@@ -112,9 +112,9 @@ jobs:
             --registry-username ${{ secrets.ACR_USERNAME }} \
             --registry-password ${{ secrets.ACR_PASSWORD }} \
             --cpu 2 \
-            --os-type Linux \
-            --location westeurope
             --memory 4 \
+            --os-type Linux \
+            --location westeurope \
             --ports $CONTAINER_PORT \
             --dns-name-label "$SANITIZED_NAME"
             --restart-policy Always \
