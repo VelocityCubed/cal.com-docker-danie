@@ -71,6 +71,8 @@ jobs:
 
           docker login ${{ secrets.ACR_NAME }}.azurecr.io -u ${{ secrets.ACR_USERNAME }} -p ${{ secrets.ACR_PASSWORD }}
 
+          'az config set extension.dynamic_install_allow_preview=true
+
 
       - name: Add container backend to Front Door
         run: |
