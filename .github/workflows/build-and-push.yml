@@ -71,54 +71,54 @@ jobs:
 
           docker login ${{ secrets.ACR_NAME }}.azurecr.io -u ${{ secrets.ACR_USERNAME }} -p ${{ secrets.ACR_PASSWORD }}
 
+          az config set extension.use_dynamic_install=yes_without_prompt
+
           az config set extension.dynamic_install_allow_preview=true
 
 
-      - name: Add container backend to Front Door
+      - name: Add container backend to existing Front Door (AFD)
         run: |
-          # Variables
+          # Set variables
           RESOURCE_GROUP="${{ secrets.ACI_RESOURCE_GROUP }}"
-          FRONTDOOR_NAME="fertilitymapper"
-          BACKEND_POOL="container-backend"
-          # Construct the container's public DNS name (adjust if your region/domain is different)
-          ACI_BACKEND="${SANITIZED_NAME}.westeurope.azurecontainer.io"
-          
-          echo "Adding container backend '$ACI_BACKEND' to Front Door '$FRONTDOOR_NAME' (pool: '$BACKEND_POOL')"
+          PROFILE_NAME="fertilitymapper"                      # Your Front Door/CDN profile name
+          ORIGIN_GROUP="container-origin-group"               # Name for the origin group (choose as desired)
+          ORIGIN_NAME="${SANITIZED_NAME}-origin"              # Unique name for this origin
+          CONTAINER_HOSTNAME="${SANITIZED_NAME}.westeurope.azurecontainer.io"
+          ENDPOINT_NAME="your-afd-endpoint"                   # Replace with your Front Door endpoint name
+          # CONTAINER_PORT should be set in your workflow environment
 
-          # If the backend pool doesn't exist yet, create it.
-          az network front-door backend-pool create \
+          echo "Creating (or updating) origin group '${ORIGIN_GROUP}' in Front Door profile '${PROFILE_NAME}'..."
+          az afd origin-group create \
             --resource-group "$RESOURCE_GROUP" \
-            --front-door-name "$FRONTDOOR_NAME" \
-            --name "$BACKEND_POOL" \ 
-            --load-balancing "defaultLoadBalancingSettings" \
-            --probe "defaultProbeSettings"
-            --address "$ACI_BACKEND"
+            --profile-name "$PROFILE_NAME" \
+            --origin-group-name "$ORIGIN_GROUP" \
+            --probe-path "/" \
+            --probe-protocol Http \
+            --probe-request-type GET
 
-          echo "Adding backend to the pool"
-          # Now add the container as a backend with required load balancing and probe settings.
-          # Replace 'defaultLoadBalancingSettings' and 'defaultProbeSettings' with the actual names on your Front Door if they differ.
-          az network front-door backend-pool backend add \
+          echo "Adding origin '${ORIGIN_NAME}' with hostname '${CONTAINER_HOSTNAME}'..."
+          az afd origin create \
             --resource-group "$RESOURCE_GROUP" \
-            --front-door-name "$FRONTDOOR_NAME" \
-            --pool-name "$BACKEND_POOL" \
-            --address "$ACI_BACKEND" \
+            --profile-name "$PROFILE_NAME" \
+            --origin-group-name "$ORIGIN_GROUP" \
+            --origin-name "$ORIGIN_NAME" \
+            --host-name "$CONTAINER_HOSTNAME" \
             --http-port $CONTAINER_PORT \
-            --https-port 443 \
-            --load-balancing "defaultLoadBalancingSettings" \
-            --probe "defaultProbeSettings" \
-            --priority 1 \
-            --weight 50
+            --https-port 443
 
-          echo "update routes"  
-
-          # (Optional) Update an existing routing rule to point to this backend pool.
-          az network front-door routing-rule update \
+          echo "Creating (or updating) a route to forward traffic to origin group '${ORIGIN_GROUP}'..."
+          az afd route create \
             --resource-group "$RESOURCE_GROUP" \
-            --front-door-name "$FRONTDOOR_NAME" \
-            --name "routingRule" \
-            --forwarding-configuration backend-pool="$BACKEND_POOL"
-          
-          echo "Front Door '$FRONTDOOR_NAME' updated with the new container backend."
+            --profile-name "$PROFILE_NAME" \
+            --endpoint-name "$ENDPOINT_NAME" \
+            --route-name "container-route" \
+            --origin-group "$ORIGIN_GROUP" \
+            --accepted-protocols Http Https \
+            --patterns "/*" \
+            --forwarding-protocol Http
+
+          echo "Container backend added to Front Door profile '${PROFILE_NAME}' successfully."
+
 
 
 
