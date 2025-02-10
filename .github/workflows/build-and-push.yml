@@ -118,6 +118,7 @@ jobs:
             --location westeurope
             --memory 4 \
             --ports $CONTAINER_PORT \
+            --dns-name-label "$SANITIZED_NAME"
             --restart-policy Always \
             --environment-variables \
               NEXT_PUBLIC_DEBUG=1 \
