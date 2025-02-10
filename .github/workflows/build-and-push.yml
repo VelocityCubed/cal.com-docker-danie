@@ -40,6 +40,33 @@ jobs:
       - name: Extract short SHA for tagging
         run: echo "IMAGE_TAG=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
+      - name: Test container name
+        run: |
+          # Function to sanitize the repository name
+          sanitize_name() {
+            local name="$1"
+            # Convert to lowercase
+            name="${name,,}"
+            # Replace invalid characters with hyphens
+            name="$(echo "$name" | sed 's/[^a-z0-9-]/-/g')"
+            # Remove leading or trailing hyphens
+            name="$(echo "$name" | sed 's/^-*//;s/-*$//')"
+            # Ensure the name starts and ends with a lowercase letter or number
+            if [[ ! "$name" =~ ^[a-z0-9] ]]; then
+              name="a$name"
+            fi
+            if [[ ! "$name" =~ [a-z0-9]$ ]]; then
+              name="${name}a"
+            fi
+            echo "$name"
+          }
+
+          # Extract the repository name from GITHUB_REPOSITORY
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+          # Sanitize the repository name
+          SANITIZED_NAME=$(sanitize_name "$REPO_NAME")
+          echo "$SANITIZED_NAME"
+
       - name: Build and push Docker image
         run: |
           docker buildx build --platform linux/amd64 \
