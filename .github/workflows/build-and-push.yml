@@ -50,9 +50,33 @@ jobs:
 
       - name: Deploy to Azure Container Instance
         run: |
+          # Function to sanitize the repository name
+          sanitize_name() {
+            local name="$1"
+            # Convert to lowercase
+            name="${name,,}"
+            # Replace invalid characters with hyphens
+            name="$(echo "$name" | sed 's/[^a-z0-9-]/-/g')"
+            # Remove leading or trailing hyphens
+            name="$(echo "$name" | sed 's/^-*//;s/-*$//')"
+            # Ensure the name starts and ends with a lowercase letter or number
+            if [[ ! "$name" =~ ^[a-z0-9] ]]; then
+              name="a$name"
+            fi
+            if [[ ! "$name" =~ [a-z0-9]$ ]]; then
+              name="${name}a"
+            fi
+            echo "$name"
+          }
+
+          # Extract the repository name from GITHUB_REPOSITORY
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+          # Sanitize the repository name
+          SANITIZED_NAME=$(sanitize_name "$REPO_NAME")
+
           az container create \
             --resource-group ${{ secrets.ACI_RESOURCE_GROUP }} \
-            --name ${GITHUB_REPOSITORY##*/} \
+            --name "$SANITIZED_NAME" \
             --image ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
             --registry-login-server ${{ secrets.ACR_NAME }}.azurecr.io \
             --registry-username ${{ secrets.ACR_USERNAME }} \
