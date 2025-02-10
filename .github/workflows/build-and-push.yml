@@ -66,6 +66,7 @@ jobs:
           # Sanitize the repository name
           SANITIZED_NAME=$(sanitize_name "$REPO_NAME")
           echo "$SANITIZED_NAME"
+          
           echo "${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.IMAGE_NAME }}${GITHUB_REPOSITORY##*/}:${{ env.IMAGE_TAG }}"
 
           docker login ${{ secrets.ACR_NAME }}.azurecr.io -u ${{ secrets.ACR_USERNAME }} -p ${{ secrets.ACR_PASSWORD }}
@@ -76,6 +77,8 @@ jobs:
             -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.IMAGE_NAME }}${GITHUB_REPOSITORY##*/}:${{ env.IMAGE_TAG }} \
             -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.IMAGE_NAME }}${GITHUB_REPOSITORY##*/}:latest \
             --push .
+
+          az acr repository show --name ${{ secrets.ACR_NAME }} --image ${{ secrets.IMAGE_NAME }}${GITHUB_REPOSITORY##*/}:${{ env.IMAGE_TAG }}
 
 
       - name: Deploy to Azure Container Instance
@@ -107,7 +110,7 @@ jobs:
           az container create \
             --resource-group ${{ secrets.ACI_RESOURCE_GROUP }} \
             --name "$SANITIZED_NAME" \
-            --image ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+            --image ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.IMAGE_NAME }}${GITHUB_REPOSITORY##*/}:${{ env.IMAGE_TAG }} \
             --registry-login-server ${{ secrets.ACR_NAME }}.azurecr.io \
             --registry-username ${{ secrets.ACR_USERNAME }} \
             --registry-password ${{ secrets.ACR_PASSWORD }} \
