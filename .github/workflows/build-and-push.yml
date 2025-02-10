@@ -52,7 +52,7 @@ jobs:
         run: |
           az container create \
             --resource-group ${{ secrets.ACI_RESOURCE_GROUP }} \
-            --name ${{ secrets.ACR_NAME }}${GITHUB_REPOSITORY##*/} \
+            --name ${GITHUB_REPOSITORY##*/} \
             --image ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
             --registry-login-server ${{ secrets.ACR_NAME }}.azurecr.io \
             --registry-username ${{ secrets.ACR_USERNAME }} \
