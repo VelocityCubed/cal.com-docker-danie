@@ -58,6 +58,7 @@ jobs:
             --registry-username ${{ secrets.ACR_USERNAME }} \
             --registry-password ${{ secrets.ACR_PASSWORD }} \
             --cpu 2 \
+            --os-type Linux \
             --memory 4 \
             --ports $CONTAINER_PORT \
             --restart-policy Always \
