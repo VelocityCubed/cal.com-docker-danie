@@ -116,7 +116,7 @@ jobs:
             --os-type Linux \
             --location westeurope \
             --ports $CONTAINER_PORT \
-            --dns-name-label "$SANITIZED_NAME"
+            --dns-name-label "$SANITIZED_NAME" \
             --restart-policy Always \
             --environment-variables \
               NEXT_PUBLIC_DEBUG=1 \
