@@ -115,6 +115,7 @@ jobs:
             --registry-password ${{ secrets.ACR_PASSWORD }} \
             --cpu 2 \
             --os-type Linux \
+            --location westeurope
             --memory 4 \
             --ports $CONTAINER_PORT \
             --restart-policy Always \
