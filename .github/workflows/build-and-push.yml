@@ -65,7 +65,7 @@ jobs:
           REPO_NAME="${GITHUB_REPOSITORY##*/}"
           # Sanitize the repository name
           SANITIZED_NAME=$(sanitize_name "$REPO_NAME")
-          echo "$SANITIZED_NAME"
+          echo sanitizedName: "$SANITIZED_NAME"
 
           echo "${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.IMAGE_NAME }}${GITHUB_REPOSITORY##*/}:${{ env.IMAGE_TAG }}"
 
@@ -88,6 +88,7 @@ jobs:
           # CONTAINER_PORT should be set in your workflow environment
 
           echo "Create endpoint"
+          echo "Endpoint: $ENDPOINT_NAME"
           az afd endpoint create -g $RESOURCE_GROUP --endpoint-name $ENDPOINT_NAME --profile-name $PROFILE_NAME --enabled-state Enabled
 
           echo "Creating (or updating) origin group '${ORIGIN_GROUP}' in Front Door profile '${PROFILE_NAME}'..."
