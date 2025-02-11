@@ -77,6 +77,7 @@ jobs:
 
 
       - name: Add container backend to existing Front Door (AFD)
+        id: create_fd_entries
         run: |
           # Function to sanitize the repository name
           sanitize_name() {
@@ -147,7 +148,7 @@ jobs:
             --resource-group "$RESOURCE_GROUP" \
             --profile-name "$PROFILE_NAME" \
             --endpoint-name "$ENDPOINT_NAME" \
-            --route-name "container-route" \
+            --route-name "container-route-$SANITIZED_NAME" \
             --origin-group "$ORIGIN_GROUP" \
             --patterns "/*" \
             --forwarding-protocol HttpOnly \
@@ -155,7 +156,17 @@ jobs:
 
           echo "Container backend added to Front Door profile '${PROFILE_NAME}' successfully."
 
-
+          hostName=$(az afd endpoint show \
+            --profile-name "$PROFILE_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --endpoint-name "$ENDPOINT_NAME" \
+            --query hostName -o tsv)
+          
+          # Print it (for logging purposes)
+          echo "Host name is: $hostName"
+          
+          # Save it as an output variable for the step
+          echo "hostName=$hostName" >> $GITHUB_OUTPUT
 
 
       - name: Build and push Docker image
@@ -166,6 +177,8 @@ jobs:
             --push .
 
           az acr repository show --name ${{ secrets.ACR_NAME }} --image ${{ secrets.IMAGE_NAME }}${GITHUB_REPOSITORY##*/}:${{ env.IMAGE_TAG }}
+
+          echo "${{ steps.create_fd_entries.outputs.hostName }}"
 
 
       - name: Deploy to Azure Container Instance
@@ -214,16 +227,16 @@ jobs:
               CALCOM_PRIVATE_API_ROUTE="https://goblin.cal.com" \
               DATABASE_URL="${{ secrets.DATABASE_URL }}" \
               DATABASE_DIRECT_URL="${{ secrets.DATABASE_URL }}" \
-              NEXT_PUBLIC_WEBAPP_URL="http://localhost:3000" \
-              NEXT_PUBLIC_WEBSITE_URL="http://localhost:3000" \
+              NEXT_PUBLIC_WEBAPP_URL="https://${{ steps.create_fd_entries.outputs.hostName }}" \
+              NEXT_PUBLIC_WEBSITE_URL="https://${{ steps.create_fd_entries.outputs.hostName }}" \
               NEXT_PUBLIC_CONSOLE_URL="http://localhost:3004" \
-              NEXT_PUBLIC_EMBED_LIB_URL="http://localhost:3000/embed/embed.js" \
-              ALLOWED_HOSTNAMES='"cal.com","cal.dev","cal-staging.com","cal.community","cal.local:3000","localhost:3000"' \
+              NEXT_PUBLIC_EMBED_LIB_URL="https://${{ steps.create_fd_entries.outputs.hostName }}/embed/embed.js" \
+              ALLOWED_HOSTNAMES='"cal.com","cal.dev","cal-staging.com","cal.community","cal.local:3000","localhost:3000","${{ steps.create_fd_entries.outputs.hostName }}"' \
               RESERVED_SUBDOMAINS='"app","auth","docs","design","console","go","status","api","saml","www","matrix","developer","cal","my","team","support","security","blog","learn","admin"' \
-              NEXTAUTH_URL="http://localhost:3000" \
-              NEXTAUTH_SECRET="/6tODEuZUbbxOecTA0xzmJGmhRa7JwKqQO5FWZsHUKc=" \
+              NEXTAUTH_URL="https://${{ steps.create_fd_entries.outputs.hostName }}" \
+              NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}" \
               CRON_API_KEY="0cc0e6c35519bba620c9360cfe3e68d0" \
-              CALENDSO_ENCRYPTION_KEY="goaxzdDeTNf3AaGaalX3thrC/XFInn+m" \
+              CALENDSO_ENCRYPTION_KEY="${{ secrets.CALENDSO_ENCRYPTION_KEY }}" \
               PLAIN_API_URL="https://api.plain.com/v1" \
               EMAIL_FROM="notifications@yourselfhostedcal.com" \
               EMAIL_FROM_NAME="Cal.com" \
