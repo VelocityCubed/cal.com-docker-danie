@@ -151,7 +151,7 @@ jobs:
             --origin-group "$ORIGIN_GROUP" \
             --accepted-protocols Http Https \
             --patterns "/*" \
-            --forwarding-protocol Http
+            --forwarding-protocol HttpOnly
 
           echo "Container backend added to Front Door profile '${PROFILE_NAME}' successfully."
 
