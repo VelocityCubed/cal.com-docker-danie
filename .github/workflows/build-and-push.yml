@@ -151,6 +151,7 @@ jobs:
             --origin-group "$ORIGIN_GROUP" \
             --patterns "/*" \
             --forwarding-protocol HttpOnly
+            --link-to-default-domain Enabled 
 
           echo "Container backend added to Front Door profile '${PROFILE_NAME}' successfully."
 
