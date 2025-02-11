@@ -149,7 +149,6 @@ jobs:
             --endpoint-name "$ENDPOINT_NAME" \
             --route-name "container-route" \
             --origin-group "$ORIGIN_GROUP" \
-            --accepted-protocols Http Https \
             --patterns "/*" \
             --forwarding-protocol HttpOnly
 
