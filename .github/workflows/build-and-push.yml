@@ -171,15 +171,13 @@ jobs:
 
       - name: Build and push Docker image
         run: |
+          echo "HOSTNAME: ${{ steps.create_fd_entries.outputs.hostName }}"
           docker buildx build --platform linux/amd64 \
             -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.IMAGE_NAME }}${GITHUB_REPOSITORY##*/}:${{ env.IMAGE_TAG }} \
             -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ secrets.IMAGE_NAME }}${GITHUB_REPOSITORY##*/}:latest \
             --push .
 
           az acr repository show --name ${{ secrets.ACR_NAME }} --image ${{ secrets.IMAGE_NAME }}${GITHUB_REPOSITORY##*/}:${{ env.IMAGE_TAG }}
-
-          echo "${{ steps.create_fd_entries.outputs.hostName }}"
-
 
       - name: Deploy to Azure Container Instance
         run: |
