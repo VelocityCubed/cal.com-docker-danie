@@ -81,30 +81,41 @@ jobs:
           # Set variables
           RESOURCE_GROUP="${{ secrets.ACI_RESOURCE_GROUP }}"
           PROFILE_NAME="fertilitymapper"                      # Your Front Door/CDN profile name
-          ORIGIN_GROUP="container-origin-group"               # Name for the origin group (choose as desired)
-          ORIGIN_NAME="${SANITIZED_NAME}-origin"              # Unique name for this origin
+          ORIGIN_GROUP="og-$SANITIZED_NAME"               # Name for the origin group (choose as desired)
+          ORIGIN_NAME="origin-$SANITIZED_NAME"              # Unique name for this origin
           CONTAINER_HOSTNAME="${SANITIZED_NAME}.westeurope.azurecontainer.io"
-          ENDPOINT_NAME="your-afd-endpoint"                   # Replace with your Front Door endpoint name
+          ENDPOINT_NAME="${SANITIZED_NAME}-endpoint"                   # Replace with your Front Door endpoint name
           # CONTAINER_PORT should be set in your workflow environment
+
+          echo "Create endpoint"
+          az afd endpoint create -g $RESOURCE_GROUP --endpoint-name $ENDPOINT_NAME --profile-name $PROFILE_NAME --enabled-state Enabled
 
           echo "Creating (or updating) origin group '${ORIGIN_GROUP}' in Front Door profile '${PROFILE_NAME}'..."
           az afd origin-group create \
             --resource-group "$RESOURCE_GROUP" \
+            --origin-group-name og-$SANITIZED_NAME \
             --profile-name "$PROFILE_NAME" \
-            --origin-group-name "$ORIGIN_GROUP" \
-            --probe-path "/" \
+            --probe-request-type GET \
             --probe-protocol Http \
-            --probe-request-type GET
+            --probe-interval-in-seconds 60 \
+            --probe-path / \
+            --sample-size 4 \
+            --successful-samples-required 3 \
+            --additional-latency-in-milliseconds 50
 
           echo "Adding origin '${ORIGIN_NAME}' with hostname '${CONTAINER_HOSTNAME}'..."
+          
           az afd origin create \
             --resource-group "$RESOURCE_GROUP" \
+            --host-name cal-com-docker.westeurope.azurecontainer.io \
             --profile-name "$PROFILE_NAME" \
-            --origin-group-name "$ORIGIN_GROUP" \
-            --origin-name "$ORIGIN_NAME" \
-            --host-name "$CONTAINER_HOSTNAME" \
+            --origin-group-name og-$SANITIZED_NAME \
+            --origin-name origin-$SANITIZED_NAME \
+            --origin-host-header "$CONTAINER_HOSTNAME"  \
+            --priority 1 \
+            --weight 1000 \
+            --enabled-state Enabled \
             --http-port $CONTAINER_PORT \
-            --https-port 443
 
           echo "Creating (or updating) a route to forward traffic to origin group '${ORIGIN_GROUP}'..."
           az afd route create \
