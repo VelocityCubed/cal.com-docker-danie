@@ -78,6 +78,30 @@ jobs:
 
       - name: Add container backend to existing Front Door (AFD)
         run: |
+          # Function to sanitize the repository name
+          sanitize_name() {
+            local name="$1"
+            # Convert to lowercase
+            name="${name,,}"
+            # Replace invalid characters with hyphens
+            name="$(echo "$name" | sed 's/[^a-z0-9-]/-/g')"
+            # Remove leading or trailing hyphens
+            name="$(echo "$name" | sed 's/^-*//;s/-*$//')"
+            # Ensure the name starts and ends with a lowercase letter or number
+            if [[ ! "$name" =~ ^[a-z0-9] ]]; then
+              name="a$name"
+            fi
+            if [[ ! "$name" =~ [a-z0-9]$ ]]; then
+              name="${name}a"
+            fi
+            echo "$name"
+          }
+
+          # Extract the repository name from GITHUB_REPOSITORY
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+          # Sanitize the repository name
+          SANITIZED_NAME=$(sanitize_name "$REPO_NAME")
+
           # Set variables
           RESOURCE_GROUP="${{ secrets.ACI_RESOURCE_GROUP }}"
           PROFILE_NAME="fertilitymapper"                      # Your Front Door/CDN profile name
