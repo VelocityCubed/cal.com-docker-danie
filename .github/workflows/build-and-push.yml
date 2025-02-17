@@ -178,6 +178,11 @@ jobs:
           
           echo "Associating custom domain: $CUSTOM_DOMAIN"
 
+          DNS_ZONE_ID=$(az network dns zone show --name fertilitymapper.com --resource-group ${{ secrets.ACI_RESOURCE_GROUP }} --query id -o tsv)
+          echo "DNS Zone ID: $DNS_ZONE_ID"
+
+
+
           # Step 1: Create a custom domain in Azure Front Door
           az afd custom-domain create \
             --resource-group "$RESOURCE_GROUP" \
@@ -185,6 +190,7 @@ jobs:
             --custom-domain-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
             --host-name "$CUSTOM_DOMAIN" \
             --minimum-tls-version TLS12 \
+            --azure-dns-zone $DNS_ZONE_ID \
             --certificate-type ManagedCertificate
 
       - name: Build and push Docker image
