@@ -246,4 +246,12 @@ jobs:
               NEXT_PUBLIC_COMPANY_NAME="Cal.com, Inc." \
               NEXT_PUBLIC_ORGANIZATIONS_MIN_SELF_SERVE_SEATS=30 \
               NEXT_PUBLIC_ORGANIZATIONS_SELF_SERVE_PRICE=3700 \
-              AB_TEST_BUCKET_PROBABILITY=50
+              AB_TEST_BUCKET_PROBABILITY=50 \
+              MS_GRAPH_CLIENT_ID="${{ secrets.MS_GRAPH_CLIENT_ID }}" \
+              MS_GRAPH_CLIENT_SECRET="${{ secrets.MS_GRAPH_CLIENT_SECRET }}" \
+              EMAIL_FROM="${{ secrets.EMAIL_FROM }}" \
+              EMAIL_SERVER_HOST="${{ secrets.EMAIL_SERVER_HOST }}" \
+              EMAIL_SERVER_PORT="${{ secrets.EMAIL_SERVER_PORT }}" \
+              EMAIL_SERVER_USER="${{ secrets.EMAIL_SERVER_USER }}" \
+              EMAIL_SERVER_PASSWORD="${{ secrets.EMAIL_SERVER_PASSWORD }}" 
+
