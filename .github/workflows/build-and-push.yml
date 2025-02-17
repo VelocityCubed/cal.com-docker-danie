@@ -236,12 +236,6 @@ jobs:
               CRON_API_KEY="0cc0e6c35519bba620c9360cfe3e68d0" \
               CALENDSO_ENCRYPTION_KEY="${{ secrets.CALENDSO_ENCRYPTION_KEY }}" \
               PLAIN_API_URL="https://api.plain.com/v1" \
-              NEXT_PUBLIC_FORMBRICKS_HOST_URL="https://app.formbricks.com" \
-              NEXT_PUBLIC_APP_NAME="Cal.com" \
-              NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS="help@cal.com" \
-              NEXT_PUBLIC_COMPANY_NAME="Cal.com, Inc." \
-              NEXT_PUBLIC_ORGANIZATIONS_MIN_SELF_SERVE_SEATS=30 \
-              NEXT_PUBLIC_ORGANIZATIONS_SELF_SERVE_PRICE=3700 \
               AB_TEST_BUCKET_PROBABILITY=50 \
               MS_GRAPH_CLIENT_ID="${{ secrets.MS_GRAPH_CLIENT_ID }}" \
               MS_GRAPH_CLIENT_SECRET="${{ secrets.MS_GRAPH_CLIENT_SECRET }}" \
