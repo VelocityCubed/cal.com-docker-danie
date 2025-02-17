@@ -236,10 +236,6 @@ jobs:
               CRON_API_KEY="0cc0e6c35519bba620c9360cfe3e68d0" \
               CALENDSO_ENCRYPTION_KEY="${{ secrets.CALENDSO_ENCRYPTION_KEY }}" \
               PLAIN_API_URL="https://api.plain.com/v1" \
-              EMAIL_FROM="notifications@yourselfhostedcal.com" \
-              EMAIL_FROM_NAME="Cal.com" \
-              EMAIL_SERVER_HOST="localhost" \
-              EMAIL_SERVER_PORT=1025 \
               NEXT_PUBLIC_FORMBRICKS_HOST_URL="https://app.formbricks.com" \
               NEXT_PUBLIC_APP_NAME="Cal.com" \
               NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS="help@cal.com" \
