@@ -143,16 +143,7 @@ jobs:
             --enabled-state Enabled \
             --http-port $CONTAINER_PORT \
 
-          echo "Creating (or updating) a route to forward traffic to origin group '${ORIGIN_GROUP}'..."
-          az afd route create \
-            --resource-group "$RESOURCE_GROUP" \
-            --profile-name "$PROFILE_NAME" \
-            --endpoint-name "$ENDPOINT_NAME" \
-            --route-name "container-route-$SANITIZED_NAME" \
-            --origin-group "$ORIGIN_GROUP" \
-            --patterns "/*" \
-            --forwarding-protocol HttpOnly \
-            --link-to-default-domain Enabled 
+
 
           echo "Container backend added to Front Door profile '${PROFILE_NAME}' successfully."
 
@@ -209,6 +200,21 @@ jobs:
             az network dns record-set txt add-record -g ${{ secrets.ACI_RESOURCE_GROUP }} -z fertilitymapper.com -n "_dnsauth.${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" -v $VALIDATION_TOKEN
 
             echo Domain Id: $DOMAIN_ID
+
+
+
+
+            echo "Creating (or updating) a route to forward traffic to origin group '${ORIGIN_GROUP}'..."
+            az afd route create \
+            --resource-group "${{ secrets.ACI_RESOURCE_GROUP }}" \
+            --profile-name "$PROFILE_NAME" \
+            --endpoint-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}-endpoint" \
+            --route-name "container-route-${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
+            --origin-group "og-${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
+            --patterns "/*" \
+            --forwarding-protocol HttpOnly \
+            --link-to-default-domain Enabled \
+            --custom-domains "[{id:'$DOMAIN_ID',isActive:true,resourceGroup:${{ secrets.ACI_RESOURCE_GROUP }} }]"
 
             az afd route update  \
             --resource-group ${{ secrets.ACI_RESOURCE_GROUP }} \
