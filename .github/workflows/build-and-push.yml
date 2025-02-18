@@ -201,14 +201,14 @@ jobs:
             az network dns record-set cname set-record -g ${{ secrets.ACI_RESOURCE_GROUP }} -z fertilitymapper.com \
             -n "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" -c "${{ steps.create_fd_entries.outputs.hostName }}"
 
-            VALIDATION_JSON=$(az afd custom-domain show \
-            --resource-group "${{ secrets.ACI_RESOURCE_GROUP }}" \
-            --profile-name "$PROFILE_NAME" \
-            --custom-domain-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
-            --query "validationProperties.validationTokens" -o json)
+            VALIDATION_TOKEN=$(az afd custom-domain show --resource-group "${{ secrets.ACI_RESOURCE_GROUP }}" --profile-name "fertilitymapper"  --custom-domain-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" --query validationProperties.validationToken)
 
 
-            echo Validation JSON: $VALIDATION_JSON
+
+            az network dns record-set txt create -g ${{ secrets.ACI_RESOURCE_GROUP }} -z fertilitymapper.com -n "_dnsauth.${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" --ttl 3600
+            az network dns record-set txt add-record -g ${{ secrets.ACI_RESOURCE_GROUP }} -z fertilitymapper.com -n "_dnsauth.${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" -v $VALIDATION_TOKEN
+
+            echo Validation JSON: $VALIDATION_TOKEN
 
       - name: Build and push Docker image
         run: |
