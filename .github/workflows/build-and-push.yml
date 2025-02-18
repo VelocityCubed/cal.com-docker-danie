@@ -203,17 +203,19 @@ jobs:
 
             VALIDATION_TOKEN=$(az afd custom-domain show --resource-group "${{ secrets.ACI_RESOURCE_GROUP }}" --profile-name "fertilitymapper"  --custom-domain-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" --query validationProperties.validationToken | sed 's/"//g')
 
-
+            DOMAIN_ID=$(az afd custom-domain show --resource-group "${{ secrets.ACI_RESOURCE_GROUP }}" --profile-name "fertilitymapper"  --custom-domain-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" --query id | sed 's/"//g')
 
             az network dns record-set txt create -g ${{ secrets.ACI_RESOURCE_GROUP }} -z fertilitymapper.com -n "_dnsauth.${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" --ttl 3600
             az network dns record-set txt add-record -g ${{ secrets.ACI_RESOURCE_GROUP }} -z fertilitymapper.com -n "_dnsauth.${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" -v $VALIDATION_TOKEN
+
+            echo Domain Id: $DOMAIN_ID
 
             az afd route update  \
             --resource-group ${{ secrets.ACI_RESOURCE_GROUP }} \
             --profile-name "$PROFILE_NAME" \
             --endpoint-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}-endpoint"  \
             --route-name "container-route-${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
-            --custom-domains "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}.fertilitymapper.com"
+            --custom-domains "$DOMAIN_ID"
 
 
 
