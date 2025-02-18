@@ -208,6 +208,15 @@ jobs:
             az network dns record-set txt create -g ${{ secrets.ACI_RESOURCE_GROUP }} -z fertilitymapper.com -n "_dnsauth.${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" --ttl 3600
             az network dns record-set txt add-record -g ${{ secrets.ACI_RESOURCE_GROUP }} -z fertilitymapper.com -n "_dnsauth.${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" -v $VALIDATION_TOKEN
 
+            az afd route update  \
+            --resource-group ${{ secrets.ACI_RESOURCE_GROUP }} \
+            --profile-name "$PROFILE_NAME" \
+            --endpoint-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}-endpoint"  \
+            --route-name "container-route-${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
+            --custom-domains "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}.fertilitymapper.com"
+
+
+
             echo Validation JSON: $VALIDATION_TOKEN
 
       - name: Build and push Docker image
