@@ -215,7 +215,7 @@ jobs:
             --profile-name "$PROFILE_NAME" \
             --endpoint-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}-endpoint"  \
             --route-name "container-route-${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
-            --custom-domains "$DOMAIN_ID"
+            --custom-domains "[{id:'$DOMAIN_ID',isActive:true,resourceGroup:${{ secrets.ACI_RESOURCE_GROUP }} }]"
 
 
 
