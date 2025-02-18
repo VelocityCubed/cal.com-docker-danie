@@ -201,6 +201,16 @@ jobs:
             az network dns record-set cname set-record -g ${{ secrets.ACI_RESOURCE_GROUP }} -z fertilitymapper.com \
             -n "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" -c "${{ steps.create_fd_entries.outputs.hostName }}"
 
+            VALIDATION_JSON=$(az afd custom-domain show \
+            --resource-group "${{ secrets.ACI_RESOURCE_GROUP }}" \
+            --profile-name "$PROFILE_NAME" \
+            --custom-domain-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
+            --query "validationProperties.validationTokens" \
+            -o json)
+
+
+            echo $VALIDATION_JSON
+
       - name: Build and push Docker image
         run: |
           echo "HOSTNAME: ${{ steps.create_fd_entries.outputs.hostName }}"
