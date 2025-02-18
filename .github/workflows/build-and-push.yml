@@ -205,11 +205,10 @@ jobs:
             --resource-group "${{ secrets.ACI_RESOURCE_GROUP }}" \
             --profile-name "$PROFILE_NAME" \
             --custom-domain-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
-            --query "validationProperties.validationTokens" \
-            -o json)
+            --query "validationProperties.validationTokens" -o json)
 
 
-            echo $VALIDATION_JSON
+            echo Validation JSON: $VALIDATION_JSON
 
       - name: Build and push Docker image
         run: |
