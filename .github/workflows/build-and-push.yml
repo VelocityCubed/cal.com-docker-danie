@@ -201,7 +201,7 @@ jobs:
             az network dns record-set cname set-record -g ${{ secrets.ACI_RESOURCE_GROUP }} -z fertilitymapper.com \
             -n "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" -c "${{ steps.create_fd_entries.outputs.hostName }}"
 
-            VALIDATION_TOKEN=($(az afd custom-domain show --resource-group "${{ secrets.ACI_RESOURCE_GROUP }}" --profile-name "fertilitymapper"  --custom-domain-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" --query validationProperties.validationToken | sed 's/"//g')
+            VALIDATION_TOKEN=$(az afd custom-domain show --resource-group "${{ secrets.ACI_RESOURCE_GROUP }}" --profile-name "fertilitymapper"  --custom-domain-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" --query validationProperties.validationToken | sed 's/"//g')
 
 
 
