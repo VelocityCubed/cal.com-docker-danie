@@ -193,6 +193,14 @@ jobs:
             --azure-dns-zone $DNS_ZONE_ID \
             --certificate-type ManagedCertificate
 
+            az network dns record-set cname create \
+            --name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
+            --zone-name fertilitymapper.com \
+            --resource-group ${{ secrets.ACI_RESOURCE_GROUP }}
+            
+            az network dns record-set cname set-record -g ${{ secrets.ACI_RESOURCE_GROUP }} -z fertilitymapper.com \
+            -n "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" -c "${{ steps.create_fd_entries.outputs.hostName }}"
+
       - name: Build and push Docker image
         run: |
           echo "HOSTNAME: ${{ steps.create_fd_entries.outputs.hostName }}"
