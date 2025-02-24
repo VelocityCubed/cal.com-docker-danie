@@ -143,16 +143,7 @@ jobs:
             --enabled-state Enabled \
             --http-port $CONTAINER_PORT \
 
-          echo "Creating (or updating) a route to forward traffic to origin group '${ORIGIN_GROUP}'..."
-          az afd route create \
-            --resource-group "$RESOURCE_GROUP" \
-            --profile-name "$PROFILE_NAME" \
-            --endpoint-name "$ENDPOINT_NAME" \
-            --route-name "container-route-$SANITIZED_NAME" \
-            --origin-group "$ORIGIN_GROUP" \
-            --patterns "/*" \
-            --forwarding-protocol HttpOnly \
-            --link-to-default-domain Enabled 
+
 
           echo "Container backend added to Front Door profile '${PROFILE_NAME}' successfully."
 
@@ -167,7 +158,74 @@ jobs:
           
           # Save it as an output variable for the step
           echo "hostName=$hostName" >> $GITHUB_OUTPUT
+          echo "SANITIZED_NAME=$SANITIZED_NAME" >> $GITHUB_OUTPUT
 
+      - name: Associate Custom Domain to Front Door
+        run: |
+          CUSTOM_DOMAIN="${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}.fertilitymapper.com"
+          RESOURCE_GROUP="${{ secrets.ACI_RESOURCE_GROUP }}"
+          PROFILE_NAME="fertilitymapper"
+          ENDPOINT_NAME="${{ steps.create_fd_entries.outputs.hostName }}"
+          
+          echo "Associating custom domain: $CUSTOM_DOMAIN"
+
+          DNS_ZONE_ID=$(az network dns zone show --name fertilitymapper.com --resource-group ${{ secrets.ACI_RESOURCE_GROUP }} --query id -o tsv)
+          echo "DNS Zone ID: $DNS_ZONE_ID"
+
+
+
+          # Step 1: Create a custom domain in Azure Front Door
+          az afd custom-domain create \
+            --resource-group "$RESOURCE_GROUP" \
+            --profile-name "$PROFILE_NAME" \
+            --custom-domain-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
+            --host-name "$CUSTOM_DOMAIN" \
+            --minimum-tls-version TLS12 \
+            --azure-dns-zone $DNS_ZONE_ID \
+            --certificate-type ManagedCertificate
+
+            az network dns record-set cname create \
+            --name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
+            --zone-name fertilitymapper.com \
+            --resource-group ${{ secrets.ACI_RESOURCE_GROUP }}
+            
+            az network dns record-set cname set-record -g ${{ secrets.ACI_RESOURCE_GROUP }} -z fertilitymapper.com \
+            -n "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" -c "${{ steps.create_fd_entries.outputs.hostName }}"
+
+            VALIDATION_TOKEN=$(az afd custom-domain show --resource-group "${{ secrets.ACI_RESOURCE_GROUP }}" --profile-name "fertilitymapper"  --custom-domain-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" --query validationProperties.validationToken | sed 's/"//g')
+
+            DOMAIN_ID=$(az afd custom-domain show --resource-group "${{ secrets.ACI_RESOURCE_GROUP }}" --profile-name "fertilitymapper"  --custom-domain-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" --query id | sed 's/"//g')
+
+            az network dns record-set txt create -g ${{ secrets.ACI_RESOURCE_GROUP }} -z fertilitymapper.com -n "_dnsauth.${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" --ttl 3600
+            az network dns record-set txt add-record -g ${{ secrets.ACI_RESOURCE_GROUP }} -z fertilitymapper.com -n "_dnsauth.${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" -v $VALIDATION_TOKEN
+
+            echo Domain Id: $DOMAIN_ID
+
+
+
+
+            echo "Creating (or updating) a route to forward traffic to origin group '${ORIGIN_GROUP}'..."
+            az afd route create \
+            --resource-group "${{ secrets.ACI_RESOURCE_GROUP }}" \
+            --profile-name "$PROFILE_NAME" \
+            --endpoint-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}-endpoint" \
+            --route-name "container-route-${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
+            --origin-group "og-${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
+            --patterns "/*" \
+            --forwarding-protocol HttpOnly \
+            --link-to-default-domain Enabled \
+            --custom-domains "[{id:'$DOMAIN_ID',isActive:true,resourceGroup:${{ secrets.ACI_RESOURCE_GROUP }} }]"
+
+            az afd route update  \
+            --resource-group ${{ secrets.ACI_RESOURCE_GROUP }} \
+            --profile-name "$PROFILE_NAME" \
+            --endpoint-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}-endpoint"  \
+            --route-name "container-route-${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
+            --custom-domains "[{id:'$DOMAIN_ID',isActive:true,resourceGroup:${{ secrets.ACI_RESOURCE_GROUP }} }]"
+
+
+
+            echo Validation JSON: $VALIDATION_TOKEN
 
       - name: Build and push Docker image
         run: |
@@ -225,13 +283,13 @@ jobs:
               CALCOM_PRIVATE_API_ROUTE="https://goblin.cal.com" \
               DATABASE_URL="${{ secrets.DATABASE_URL }}" \
               DATABASE_DIRECT_URL="${{ secrets.DATABASE_URL }}" \
-              NEXT_PUBLIC_WEBAPP_URL="https://${{ steps.create_fd_entries.outputs.hostName }}" \
-              NEXT_PUBLIC_WEBSITE_URL="https://${{ steps.create_fd_entries.outputs.hostName }}" \
+              NEXT_PUBLIC_WEBAPP_URL="https://${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}.fertilitymapper.com" \
+              NEXT_PUBLIC_WEBSITE_URL="https://${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}.fertilitymapper.com" \
               NEXT_PUBLIC_CONSOLE_URL="http://localhost:3004" \
-              NEXT_PUBLIC_EMBED_LIB_URL="https://${{ steps.create_fd_entries.outputs.hostName }}/embed/embed.js" \
-              ALLOWED_HOSTNAMES='"cal.com","cal.dev","cal-staging.com","cal.community","cal.local:3000","localhost:3000","${{ steps.create_fd_entries.outputs.hostName }}"' \
+              NEXT_PUBLIC_EMBED_LIB_URL="${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}.fertilitymapper.com/embed/embed.js" \
+              ALLOWED_HOSTNAMES='"cal.com","cal.dev","cal-staging.com","cal.community","cal.local:3000","localhost:3000","${{ steps.create_fd_entries.outputs.hostName }}","${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}.fertilitymapper.com"' \
               RESERVED_SUBDOMAINS='"app","auth","docs","design","console","go","status","api","saml","www","matrix","developer","cal","my","team","support","security","blog","learn","admin"' \
-              NEXTAUTH_URL="https://${{ steps.create_fd_entries.outputs.hostName }}" \
+              NEXTAUTH_URL="https://${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}.fertilitymapper.com" \
               NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}" \
               CRON_API_KEY="0cc0e6c35519bba620c9360cfe3e68d0" \
               CALENDSO_ENCRYPTION_KEY="${{ secrets.CALENDSO_ENCRYPTION_KEY }}" \
