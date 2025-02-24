@@ -1,5 +1,5 @@
 [submodule "calcom"]
 	path = calcom
-	url = https://github.com/VelocityCubed/cal.com.git
+	url = https://github.com/VelocityCubed/fm.cal.com.git
 	branch = main
 
