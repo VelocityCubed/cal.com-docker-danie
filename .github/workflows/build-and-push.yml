@@ -76,6 +76,7 @@ jobs:
           az config set extension.dynamic_install_allow_preview=true
 
 
+
       - name: Add container backend to existing Front Door (AFD)
         id: create_fd_entries
         run: |
@@ -114,114 +115,8 @@ jobs:
 
           echo "Create endpoint"
           echo "Endpoint: ${ENDPOINT_NAME}"
-          az afd endpoint create -g $RESOURCE_GROUP --endpoint-name $ENDPOINT_NAME --profile-name $PROFILE_NAME --enabled-state Enabled
 
-          echo "Creating (or updating) origin group '${ORIGIN_GROUP}' in Front Door profile '${PROFILE_NAME}'..."
-          az afd origin-group create \
-            --resource-group "$RESOURCE_GROUP" \
-            --origin-group-name og-$SANITIZED_NAME \
-            --profile-name "$PROFILE_NAME" \
-            --probe-request-type GET \
-            --probe-protocol Http \
-            --probe-interval-in-seconds 60 \
-            --probe-path / \
-            --sample-size 4 \
-            --successful-samples-required 3 \
-            --additional-latency-in-milliseconds 50
-
-          echo "Adding origin '${ORIGIN_NAME}' with hostname '${CONTAINER_HOSTNAME}'..."
-          
-          az afd origin create \
-            --resource-group "$RESOURCE_GROUP" \
-            --host-name $CONTAINER_HOSTNAME \
-            --profile-name "$PROFILE_NAME" \
-            --origin-group-name og-$SANITIZED_NAME \
-            --origin-name origin-$SANITIZED_NAME \
-            --origin-host-header "$CONTAINER_HOSTNAME"  \
-            --priority 1 \
-            --weight 1000 \
-            --enabled-state Enabled \
-            --http-port $CONTAINER_PORT \
-
-
-
-          echo "Container backend added to Front Door profile '${PROFILE_NAME}' successfully."
-
-          hostName=$(az afd endpoint show \
-            --profile-name "$PROFILE_NAME" \
-            --resource-group "$RESOURCE_GROUP" \
-            --endpoint-name "$ENDPOINT_NAME" \
-            --query hostName -o tsv)
-          
-          # Print it (for logging purposes)
-          echo "Host name is: $hostName"
-          
-          # Save it as an output variable for the step
-          echo "hostName=$hostName" >> $GITHUB_OUTPUT
-          echo "SANITIZED_NAME=$SANITIZED_NAME" >> $GITHUB_OUTPUT
-
-      - name: Associate Custom Domain to Front Door
-        run: |
-          CUSTOM_DOMAIN="${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}.fertilitymapper.com"
-          RESOURCE_GROUP="${{ secrets.ACI_RESOURCE_GROUP }}"
-          PROFILE_NAME="fertilitymapper"
-          ENDPOINT_NAME="${{ steps.create_fd_entries.outputs.hostName }}"
-          
-          echo "Associating custom domain: $CUSTOM_DOMAIN"
-
-          DNS_ZONE_ID=$(az network dns zone show --name fertilitymapper.com --resource-group ${{ secrets.ACI_RESOURCE_GROUP }} --query id -o tsv)
-          echo "DNS Zone ID: $DNS_ZONE_ID"
-
-
-
-          # Step 1: Create a custom domain in Azure Front Door
-          az afd custom-domain create \
-            --resource-group "$RESOURCE_GROUP" \
-            --profile-name "$PROFILE_NAME" \
-            --custom-domain-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
-            --host-name "$CUSTOM_DOMAIN" \
-            --minimum-tls-version TLS12 \
-            --azure-dns-zone $DNS_ZONE_ID \
-            --certificate-type ManagedCertificate
-
-            az network dns record-set cname create \
-            --name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
-            --zone-name fertilitymapper.com \
-            --resource-group ${{ secrets.ACI_RESOURCE_GROUP }}
-            
-            az network dns record-set cname set-record -g ${{ secrets.ACI_RESOURCE_GROUP }} -z fertilitymapper.com \
-            -n "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" -c "${{ steps.create_fd_entries.outputs.hostName }}"
-
-            VALIDATION_TOKEN=$(az afd custom-domain show --resource-group "${{ secrets.ACI_RESOURCE_GROUP }}" --profile-name "fertilitymapper"  --custom-domain-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" --query validationProperties.validationToken | sed 's/"//g')
-
-            DOMAIN_ID=$(az afd custom-domain show --resource-group "${{ secrets.ACI_RESOURCE_GROUP }}" --profile-name "fertilitymapper"  --custom-domain-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" --query id | sed 's/"//g')
-
-            az network dns record-set txt create -g ${{ secrets.ACI_RESOURCE_GROUP }} -z fertilitymapper.com -n "_dnsauth.${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" --ttl 3600
-            az network dns record-set txt add-record -g ${{ secrets.ACI_RESOURCE_GROUP }} -z fertilitymapper.com -n "_dnsauth.${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" -v $VALIDATION_TOKEN
-
-            echo Domain Id: $DOMAIN_ID
-
-
-
-
-            echo "Creating (or updating) a route to forward traffic to origin group '${ORIGIN_GROUP}'..."
-            az afd route create \
-            --resource-group "${{ secrets.ACI_RESOURCE_GROUP }}" \
-            --profile-name "$PROFILE_NAME" \
-            --endpoint-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}-endpoint" \
-            --route-name "container-route-${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
-            --origin-group "og-${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
-            --patterns "/*" \
-            --forwarding-protocol HttpOnly \
-            --link-to-default-domain Enabled \
-            --custom-domains "[{id:'$DOMAIN_ID',isActive:true,resourceGroup:${{ secrets.ACI_RESOURCE_GROUP }} }]"
-
-            az afd route update  \
-            --resource-group ${{ secrets.ACI_RESOURCE_GROUP }} \
-            --profile-name "$PROFILE_NAME" \
-            --endpoint-name "${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}-endpoint"  \
-            --route-name "container-route-${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}" \
-            --custom-domains "[{id:'$DOMAIN_ID',isActive:true,resourceGroup:${{ secrets.ACI_RESOURCE_GROUP }} }]"
+      
 
 
 
@@ -229,7 +124,6 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          echo "HOSTNAME: ${{ steps.create_fd_entries.outputs.hostName }}"
           docker buildx build --platform linux/amd64 \
             -t ${{ secrets.ACR_NAME }}.azurecr.io/image-${GITHUB_REPOSITORY##*/}:${{ env.IMAGE_TAG }} \
             -t ${{ secrets.ACR_NAME }}.azurecr.io/image-${GITHUB_REPOSITORY##*/}:latest \
@@ -283,13 +177,13 @@ jobs:
               CALCOM_PRIVATE_API_ROUTE="https://goblin.cal.com" \
               DATABASE_URL="${{ secrets.DATABASE_URL }}" \
               DATABASE_DIRECT_URL="${{ secrets.DATABASE_URL }}" \
-              NEXT_PUBLIC_WEBAPP_URL="https://${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}.fertilitymapper.com" \
-              NEXT_PUBLIC_WEBSITE_URL="https://${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}.fertilitymapper.com" \
+              NEXT_PUBLIC_WEBAPP_URL="bookings.fertilitymapper.com" \
+              NEXT_PUBLIC_WEBSITE_URL="https://bookings.fertilitymapper.com" \
               NEXT_PUBLIC_CONSOLE_URL="http://localhost:3004" \
-              NEXT_PUBLIC_EMBED_LIB_URL="${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}.fertilitymapper.com/embed/embed.js" \
-              ALLOWED_HOSTNAMES='"cal.com","cal.dev","cal-staging.com","cal.community","cal.local:3000","localhost:3000","${{ steps.create_fd_entries.outputs.hostName }}","${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}.fertilitymapper.com"' \
+              NEXT_PUBLIC_EMBED_LIB_URL="https://bookings.fertilitymapper.com/embed/embed.js" \
+              ALLOWED_HOSTNAMES='"cal.com","cal.dev","cal-staging.com","cal.community","cal.local:3000","localhost:3000","bookings.fertilitymapper.com"' \
               RESERVED_SUBDOMAINS='"app","auth","docs","design","console","go","status","api","saml","www","matrix","developer","cal","my","team","support","security","blog","learn","admin"' \
-              NEXTAUTH_URL="https://${{ steps.create_fd_entries.outputs.SANITIZED_NAME }}.fertilitymapper.com" \
+              NEXTAUTH_URL="https://bookings.fertilitymapper.com" \
               NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}" \
               CRON_API_KEY="0cc0e6c35519bba620c9360cfe3e68d0" \
               CALENDSO_ENCRYPTION_KEY="${{ secrets.CALENDSO_ENCRYPTION_KEY }}" \
