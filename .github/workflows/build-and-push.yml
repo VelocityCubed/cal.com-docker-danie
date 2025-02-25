@@ -177,7 +177,7 @@ jobs:
               CALCOM_PRIVATE_API_ROUTE="https://goblin.cal.com" \
               DATABASE_URL="${{ secrets.DATABASE_URL }}" \
               DATABASE_DIRECT_URL="${{ secrets.DATABASE_URL }}" \
-              NEXT_PUBLIC_WEBAPP_URL="bookings.fertilitymapper.com" \
+              NEXT_PUBLIC_WEBAPP_URL="https://bookings.fertilitymapper.com" \
               NEXT_PUBLIC_WEBSITE_URL="https://bookings.fertilitymapper.com" \
               NEXT_PUBLIC_CONSOLE_URL="http://localhost:3004" \
               NEXT_PUBLIC_EMBED_LIB_URL="https://bookings.fertilitymapper.com/embed/embed.js" \
