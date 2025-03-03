@@ -9,7 +9,6 @@ on:
 env:
   CONTAINER_PORT: 3000
 
-
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -18,8 +17,8 @@ jobs:
       - name: Checkout repository (without recursive submodules)
         uses: actions/checkout@v4
         with:
-          submodules: false  # Prevent recursive fetching
-          fetch-depth: 0      # Fetch full history to avoid submodule issues
+          submodules: false # Prevent recursive fetching
+          fetch-depth: 0 # Fetch full history to avoid submodule issues
 
       - name: Initialize and update submodules correctly
         run: |
@@ -75,8 +74,6 @@ jobs:
 
           az config set extension.dynamic_install_allow_preview=true
 
-
-
       - name: Add container backend to existing Front Door (AFD)
         id: create_fd_entries
         run: |
@@ -116,7 +113,7 @@ jobs:
           echo "Create endpoint"
           echo "Endpoint: ${ENDPOINT_NAME}"
 
-      
+
 
 
 
@@ -157,6 +154,8 @@ jobs:
           # Sanitize the repository name
           SANITIZED_NAME=$(sanitize_name "$REPO_NAME")
 
+          #Change to force redeploy
+
           az container create \
             --resource-group ${{ secrets.ACI_RESOURCE_GROUP }} \
             --name "$SANITIZED_NAME" \
@@ -195,5 +194,4 @@ jobs:
               EMAIL_SERVER_HOST="${{ secrets.EMAIL_SERVER_HOST }}" \
               EMAIL_SERVER_PORT="${{ secrets.EMAIL_SERVER_PORT }}" \
               EMAIL_SERVER_USER="${{ secrets.EMAIL_SERVER_USER }}" \
-              EMAIL_SERVER_PASSWORD="${{ secrets.EMAIL_SERVER_PASSWORD }}" 
-
+              EMAIL_SERVER_PASSWORD="${{ secrets.EMAIL_SERVER_PASSWORD }}"
