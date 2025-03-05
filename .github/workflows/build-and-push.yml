@@ -180,6 +180,9 @@ jobs:
               NEXT_PUBLIC_WEBSITE_URL="https://bookings.fertilitymapper.com" \
               NEXT_PUBLIC_CONSOLE_URL="http://localhost:3004" \
               NEXT_PUBLIC_EMBED_LIB_URL="https://bookings.fertilitymapper.com/embed/embed.js" \
+              NEXT_PUBLIC_COMPANY_NAME="Fertility Mapper" \
+              NEXT_PUBLIC_APP_NAME="Fertility Mapper" \
+              NEXT_PUBLIC_SUPPORT_MAIL_ADDRESS="hello@fertilitymapper.com" \
               ALLOWED_HOSTNAMES='"cal.com","cal.dev","cal-staging.com","cal.community","cal.local:3000","localhost:3000","bookings.fertilitymapper.com"' \
               RESERVED_SUBDOMAINS='"app","auth","docs","design","console","go","status","api","saml","www","matrix","developer","cal","my","team","support","security","blog","learn","admin"' \
               NEXTAUTH_URL="https://bookings.fertilitymapper.com" \
