@@ -190,6 +190,8 @@ jobs:
               AB_TEST_BUCKET_PROBABILITY=50 \
               MS_GRAPH_CLIENT_ID="${{ secrets.MS_GRAPH_CLIENT_ID }}" \
               MS_GRAPH_CLIENT_SECRET="${{ secrets.MS_GRAPH_CLIENT_SECRET }}" \
+              GOOGLE_API_CREDENTIALS="${{ secrets.GOOGLE_API_CREDENTIALS }}"\
+              GOOGLE_LOGIN_ENABLED=false \
               EMAIL_FROM="${{ secrets.EMAIL_FROM }}" \
               EMAIL_SERVER_HOST="${{ secrets.EMAIL_SERVER_HOST }}" \
               EMAIL_SERVER_PORT="${{ secrets.EMAIL_SERVER_PORT }}" \
